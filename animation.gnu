@@ -1,0 +1,5 @@
+it = it+1
+file = sprintf('Output/Sol_it=%d.txt', it)
+plot file using 1:2 w l
+pause 0
+if (it<it_max) reread
