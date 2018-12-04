@@ -6,13 +6,14 @@ contains
 
   subroutine ConditionInitiale(u, dx)
     implicit none
-    real(kind=8), intent(inout), dimension(:) :: u
+    real(kind=8), intent(inout), dimension(:,:) :: u
     real(kind=8), intent(in) :: dx
     integer :: i
     real(kind=8) :: x, sig, mu
+    integer, dimension(2) :: shapeArray
 
-    ! sig = 0.08
-    ! mu = 0.5
+    sig = 0.08
+    mu = 0.5
     !
     ! do i = 1, size(u)
     !   x = i*dx
@@ -23,15 +24,16 @@ contains
     !   endif
     !   ! u(i) = 1/(sig*sqrt(2*3.1415))*exp(-((x-mu)/sig)**2/2)
     ! enddo
-
-
-    do i = 1, size(u)
+    shapeArray = shape(u)
+    u = 0
+    do i = 1, shapeArray(1)
       x = i*dx
-      if (x<0.5) then
-        u(i) = 1
-      else
-        u(i) = 0
-      endif
+      ! if ((x>0.4) .and. x<(0.6)) then
+      !   u(i,1) = sin((x-0.4)*3.1415*5)+0.5
+      ! else
+      !   u(i,1) = 0.5
+      ! endif
+      u(i,1) = 1/(sig*sqrt(2*3.1415))*exp(-((x-mu)/sig)**2/2)/10 + 1.2
     enddo
   end subroutine
 
@@ -80,18 +82,40 @@ contains
 
   subroutine Iteration(u, sigma, phi)
     implicit none
-    real(kind=8), dimension(:), intent(inout) :: u
+    real(kind=8), dimension(:,:), intent(inout) :: u
     real(kind=8), intent(in) :: sigma, phi
-    real(kind=8), dimension(size(u)) :: ubis
-    real(kind=8) :: i
+    real(kind=8), dimension(:,:), allocatable :: ubis, Fu
+    real(kind=8) :: g, bip, bim
+    integer :: i
+    integer, dimension(2) :: shapeArray
+    real(kind=8), dimension(2) :: fluxp, fluxm
 
-    ubis = u
-    u(1) = 0
-    do i=2, size(u)
-      u(i) = ubis(i) - sigma*phi*(ubis(i)-ubis(i-1))
+    g=9.81
+
+    shapeArray = shape(u)
+    allocate(ubis(1:shapeArray(1), 1:shapeArray(2)))
+    allocate(Fu(1:shapeArray(1), 1:shapeArray(2)))
+
+    ! Système de Saint Venant
+    do i=1, shapeArray(1)
+      Fu(i,1) = u(i,2)
+      Fu(i,2) = u(i,2)*u(i,2)/u(i,1)+0.5*g*u(i,1)*u(i,1)
     enddo
 
+    ubis = u
+    ! u(1) = 0
+    ! u(shapeArray(1)) = 0 Sol ne change pas aux extrémités
 
+    ! Flux de Rusanov
+    do i=2, shapeArray(1)-1
+      bim = ubis(i-1,2)/ubis(i-1,1)+sqrt(g*ubis(i-1,1))
+      bip = ubis(i,2)/ubis(i,1)+sqrt(g*ubis(i,1))
+      fluxm = 0.5*(Fu(i,:)+Fu(i-1,:))-0.5*bim*(ubis(i,:)-ubis(i-1,:))
+      fluxp = 0.5*(Fu(i+1,:)+Fu(i,:))-0.5*bip*(ubis(i+1,:)-ubis(i,:))
+      u(i,:) = ubis(i,:) - sigma*phi*(fluxp - fluxm)
+    enddo
+
+    deallocate(ubis, Fu)
   end subroutine Iteration
 
 
@@ -100,21 +124,23 @@ contains
 
   subroutine SaveSol(u, t, dx)
     implicit none
-    real(kind=8), dimension(:), intent(in) :: u
+    real(kind=8), dimension(:,:), intent(in) :: u
     real(kind=8), intent(in) :: t, dx
     integer :: i
-    character(len=5) :: ui
-    character(len=4) :: temps
-    character(len=6) :: x
+    character(len=10) :: hi, qi, temps, x
+    integer, dimension(2) :: shapeArray
 
-    write(temps, '(F4.2)') t
+    shapeArray = shape(u)
+
+    write(temps, '(F10.6)') t
 
     open(unit=15, file="Output/Sol_t=" // temps // ".txt", status="unknown")
 
-    do i=1, size(u)
-      write(x,'(F6.3)') i*dx
-      write(ui, '(F5.2)') u(i)
-      write(15, *) x // "  " // ui
+    do i=1, shapeArray(1)
+      write(x,'(F10.6)') i*dx
+      write(hi, '(F10.6)') u(i,1)
+      write(qi, '(F10.6)') u(i,2)
+      write(15, *) x // "  " // hi // "  " // qi
     enddo
 
     close(15)
