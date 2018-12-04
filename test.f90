@@ -4,97 +4,61 @@ module Solveur
 contains
 
 
-  subroutine ConditionInitiale(u, dx)
+  subroutine ConditionInitiale(u, dx, type)
     implicit none
     real(kind=8), intent(inout), dimension(:,:) :: u
     real(kind=8), intent(in) :: dx
+    integer, intent(in) :: type
     integer :: i
     real(kind=8) :: x, sig, mu
     integer, dimension(2) :: shapeArray
 
-    !
-    ! do i = 1, size(u)
-    !   x = i*dx
-    !   if ((x<0.4) .or. x>(0.6)) then
-    !     u(i) = 0
-    !   else
-    !     u(i) = sin((x-0.4)*3.1415*5)
-    !   endif
-    !   ! u(i) = 1/(sig*sqrt(2*3.1415))*exp(-((x-mu)/sig)**2/2)
-    ! enddo
     shapeArray = shape(u)
     u = 0
-    do i = 1, shapeArray(1)
-      x = i*dx
 
-      ! Sinus
-      ! if ((x>0.4) .and. x<(0.6)) then
-      !   u(i,1) = sin((x-0.4)*3.1415*5)+0.5
-      ! else
-      !   u(i,1) = 0.5
-      ! endif
+    select case(type)
+    case(0) ! Marche
+      do i = 1, shapeArray(1)
+        x = i*dx
+        if (x<0.5) then
+          u(i,1) = 1
+        else
+          u(i,1) = 1.2
+        endif
+      enddo
 
-      ! Gaussienne
-      ! sig = 0.08
-      ! mu = 1
-      ! u(i,1) = 1/(sig*sqrt(2*3.1415))*exp(-((x-mu)/sig)**2/2)/100 + 1.2
+    case(1) ! Gaussienne
+      sig = 0.08
+      mu = 0.5
+      do i = 1, shapeArray(1)
+        x = i*dx
+        u(i,1) = 1/(sig*sqrt(2*3.1415))*exp(-((x-mu)/sig)**2/2)/100
+      enddo
 
-      ! Marche
-      if (x<20) then
-        u(i,1) = 1
-      else
-        u(i,1) = 1.5
-      endif
-    enddo
+    case(2) ! Sinus
+      do i = 1, shapeArray(1)
+        x = i*dx
+        if ((x>0.4) .and. x<(0.6)) then
+          u(i,1) = sin((x-0.4)*3.1415*5)+0.5
+        else
+          u(i,1) = 0.5
+        endif
+      enddo
+
+    case default
+      write(6,*) "Attention à la condition initiale"
+
+    end select
   end subroutine
 
 
 
-  real(kind=8) function minmod(a,b) result(c)
-    implicit none
-    real(kind=8), intent(in) :: a, b
-    real(kind=8) :: aa, bb
 
-    aa = a
-    bb = b
-
-    if (aa*bb <= 0) then
-      c = 0
-    else
-      aa = abs(aa)
-      bb = abs(bb)
-      if (aa<bb) then
-        c = aa
-      else
-        c = bb
-      endif
-    endif
-
-  end function minmod
-
-
-  subroutine CFLSub(cfl, dt, dx, a)
-    implicit none
-
-    real(kind=8), intent(in) :: cfl, dx, a
-    real(kind=8), intent(inout) :: dt
-    real(kind=8) :: cflX
-
-    cflX = cfl*dx/a
-    if (cflX < dt) then
-      dt = cflX
-      print*, "Attention CFL non respectée, dt =", dt
-    endif
-
-  end subroutine CFLSub
-
-
-
-
-  subroutine Iteration(u, sigma, phi)
+  subroutine Iteration(u, sigma, flux)
     implicit none
     real(kind=8), dimension(:,:), intent(inout) :: u
-    real(kind=8), intent(in) :: sigma, phi
+    real(kind=8), intent(in) :: sigma
+    integer, intent(in) :: flux
     real(kind=8), dimension(:,:), allocatable :: ubis, Fu
     real(kind=8) :: g, bip, bim, l1, l2, l3, l4, l5, l6
     integer :: i
@@ -107,7 +71,7 @@ contains
     allocate(ubis(1:shapeArray(1), 1:shapeArray(2)))
     allocate(Fu(1:shapeArray(1), 1:shapeArray(2)))
 
-    ! Système de Saint Venant
+    ! Système de Saint Venant - flux physique
     do i=1, shapeArray(1)
       Fu(i,1) = u(i,2)
       Fu(i,2) = u(i,2)*u(i,2)/u(i,1)+0.5*g*u(i,1)*u(i,1)
@@ -115,31 +79,37 @@ contains
 
     ubis = u
 
+    select case (flux)
+    case (0) ! Flux de Lax-Friedrichs
+      do i=2, shapeArray(1)-1
+        fluxm = 0.5*(Fu(i,:)+Fu(i-1,:))-0.5/sigma*(ubis(i,:)-ubis(i-1,:))
+        fluxp = 0.5*(Fu(i+1,:)+Fu(i,:))-0.5/sigma*(ubis(i+1,:)-ubis(i,:))
+        u(i,:) = ubis(i,:) - sigma*(fluxp - fluxm)
+      enddo
 
-    ! Flux de Lax-F
-    ! do i=2, shapeArray(1)-1
-    !   fluxm = 0.5*(Fu(i,:)+Fu(i-1,:))-0.5/sigma*(ubis(i,:)-ubis(i-1,:))
-    !   fluxp = 0.5*(Fu(i+1,:)+Fu(i,:))-0.5/sigma*(ubis(i+1,:)-ubis(i,:))
-    !   u(i,:) = ubis(i,:) - sigma*phi*(fluxp - fluxm)
-    ! enddo
 
+    case (1) ! Flux de Rusanov
+      do i=2, shapeArray(1)-1
+        l1 = abs(ubis(i-1,2)/ubis(i-1,1)+sqrt(g*ubis(i-1,1))) ! valeurs propres
+        ! l2 = abs(ubis(i-1,2)/ubis(i-1,1)-sqrt(g*ubis(i-1,1)))
+        l3 = abs(ubis(i,2)/ubis(i,1)+sqrt(g*ubis(i,1)))
+        ! l4 = abs(ubis(i,2)/ubis(i,1)-sqrt(g*ubis(i,1)))
+        ! bim = max(l1, l2, l3, l4)
+        bim = max(l1, l3)
+        l5 = abs(ubis(i+1,2)/ubis(i+1,1)+sqrt(g*ubis(i+1,1)))
+        ! l6 = abs(ubis(i+1,2)/ubis(i+1,1)-sqrt(g*ubis(i+1,1)))
+        ! bip = max(l3, l4, l5, l6)
+        bip = max(l3, l5)
 
-    ! Flux de Rusanov
-    do i=2, shapeArray(1)-1
-      l1 = abs(ubis(i-1,2)/ubis(i-1,1)+sqrt(g*ubis(i-1,1))) ! valeurs propres
-      l2 = abs(ubis(i-1,2)/ubis(i-1,1)-sqrt(g*ubis(i-1,1)))
-      l3 = abs(ubis(i,2)/ubis(i,1)+sqrt(g*ubis(i,1)))
-      l4 = abs(ubis(i,2)/ubis(i,1)-sqrt(g*ubis(i,1)))
-      bim = max(l1, l2, l3, l4)
-      l5 = abs(ubis(i+1,2)/ubis(i+1,1)+sqrt(g*ubis(i+1,1)))
-      l6 = abs(ubis(i+1,2)/ubis(i+1,1)-sqrt(g*ubis(i+1,1)))
-      bip = max(l3, l4, l5, l6)
+        fluxm = 0.5*(Fu(i,:)+Fu(i-1,:))-bim*0.5*(ubis(i,:)-ubis(i-1,:))
+        fluxp = 0.5*(Fu(i+1,:)+Fu(i,:))-bip*0.5*(ubis(i+1,:)-ubis(i,:))
+        u(i,:) = ubis(i,:) - sigma*(fluxp - fluxm)
+      enddo
 
-      fluxm = 0.5*(Fu(i,:)+Fu(i-1,:))-bim*0.5*(ubis(i,:)-ubis(i-1,:))
-      fluxp = 0.5*(Fu(i+1,:)+Fu(i,:))-bip*0.5*(ubis(i+1,:)-ubis(i,:))
-      u(i,:) = ubis(i,:) - sigma*phi*(fluxp - fluxm)
-    enddo
+    case default
+      write(6,*) "Attention au flux choisi"
 
+    end select
     deallocate(ubis, Fu)
   end subroutine Iteration
 
@@ -205,6 +175,48 @@ contains
 
 
   end subroutine SolExacte
+
+
+
+
+  ! subroutine CFLSub(cfl, dt, dx, a)
+  !   implicit none
+  !
+  !   real(kind=8), intent(in) :: cfl, dx, a
+  !   real(kind=8), intent(inout) :: dt
+  !   real(kind=8) :: cflX
+  !
+  !   cflX = cfl*dx/a
+  !   if (cflX < dt) then
+  !     dt = cflX
+  !     print*, "Attention CFL non respectée, dt =", dt
+  !   endif
+  !
+  ! end subroutine CFLSub
+
+
+  !
+  ! real(kind=8) function minmod(a,b) result(c)
+  !   implicit none
+  !   real(kind=8), intent(in) :: a, b
+  !   real(kind=8) :: aa, bb
+  !
+  !   aa = a
+  !   bb = b
+  !
+  !   if (aa*bb <= 0) then
+  !     c = 0
+  !   else
+  !     aa = abs(aa)
+  !     bb = abs(bb)
+  !     if (aa<bb) then
+  !       c = aa
+  !     else
+  !       c = bb
+  !     endif
+  !   endif
+  !
+  ! end function minmod
 
 
 

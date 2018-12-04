@@ -8,41 +8,34 @@ program Main
   integer :: nbEq, it
   integer, dimension(2) :: shapeArray ! Taille de la solution
 
+  integer, parameter :: LAX_FRIEDRICHS=0, RUSANOV=1 ! Flux
+  integer, parameter :: MARCHE=0, GAUSSIENNE=1, SINUS=2 ! Condition Initiale
+
   real(kind=8) :: gg
 
   ! phi égal à : 0=minmod, 1=minmssod
 
   x_min = 0
-  x_max = 40
-  nbMailles = 320
-  dt = 0.005
-  tF = 10
-  CFL = 1
-  phi = 1
+  x_max = 1
+  nbMailles = 100
   dx = (x_max - x_min)/nbMailles
-
+  t = 0
+  tF = 0.5
+  dt = 0.001
   nbEq = 2
-
-  ! call CFLSub(CFL, dt, dx, 1) ! CFL=max(vp)
   sigma = dt/dx
-  ! print*, minmod(a,b)
 
-  allocate(u(1:nbMailles, 1:nbEq)) ! Initialisation
+  allocate(u(1:nbMailles, 1:nbEq))
   shapeArray = shape(u)
-  ! call Iteration(u, sigma, phi)
 
-  call ConditionInitiale(u, dx)
-
-  t=0
+  call ConditionInitiale(u, dx, GAUSSIENNE) ! Initialisation
   call SaveSol(u, 0, dx) ! Save la sol initiale
-
 
   it = 0
   do while (t<tF)
     t = t+dt
     it = it + 1
-    call Iteration(u, sigma, phi) ! Calcul de la sol à chaque pas de temps
-
+    call Iteration(u, sigma, LAX_FRIEDRICHS) ! Calcul de la sol à chaque pas de temps
     call SaveSol(u, it, dx)
   enddo
   !
@@ -51,16 +44,23 @@ program Main
   ! ! ! Solution exacte
   ! ! call SolExacte(x_max, dx, gg, ue, a)
   ! ! call SaveSol(ue, tF+gg, dx)
-  ! !
-  ! ! gg = 0.20
-  ! ! call SolExacte(x_max, dx, gg, ue, a)
-  ! ! call SaveSol(ue, tF+gg, dx)
-  ! !
-  ! ! gg = 0.50
-  ! ! call SolExacte(x_max, dx, gg, ue, a)
-  ! ! call SaveSol(ue, tF+gg, dx)
-  !
 
   deallocate(u)
 
 end program Main
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+!
