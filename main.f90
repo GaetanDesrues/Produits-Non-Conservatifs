@@ -12,7 +12,7 @@ program Main
   a = 1
   x_min = 0
   x_max = 1
-  nbMailles = 150
+  nbMailles = 15
   dt = 0.01
   tF = 1
   CFL = 1
