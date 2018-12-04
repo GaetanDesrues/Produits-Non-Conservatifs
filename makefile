@@ -15,3 +15,6 @@ cleanoutput :
 
 plot :
 	gnuplot -p plot.gnu
+
+anim :
+	gnuplot -p anim.gnu

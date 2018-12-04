@@ -5,7 +5,7 @@ program Main
 
   real(kind=8) :: x_min, x_max, nbMailles, dt, tF, CFL, phi, dx, sigma, t
   real(kind=8), dimension(:,:), allocatable :: u, ue
-  integer :: nbEq
+  integer :: nbEq, it
   integer, dimension(2) :: shapeArray ! Taille de la solution
 
   real(kind=8) :: gg
@@ -13,10 +13,10 @@ program Main
   ! phi égal à : 0=minmod, 1=minmssod
 
   x_min = 0
-  x_max = 1
-  nbMailles = 200
+  x_max = 40
+  nbMailles = 320
   dt = 0.005
-  tF = 1
+  tF = 10
   CFL = 1
   phi = 1
   dx = (x_max - x_min)/nbMailles
@@ -34,14 +34,16 @@ program Main
   call ConditionInitiale(u, dx)
 
   t=0
-  call SaveSol(u, t, dx) ! Save la sol initiale
+  call SaveSol(u, 0, dx) ! Save la sol initiale
 
 
-  do while (t<0.2)!tF)
+  it = 0
+  do while (t<tF)
     t = t+dt
+    it = it + 1
     call Iteration(u, sigma, phi) ! Calcul de la sol à chaque pas de temps
 
-    call SaveSol(u, t, dx)
+    call SaveSol(u, it, dx)
   enddo
   !
   ! ! gg = 0.10
