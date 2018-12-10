@@ -21,9 +21,13 @@ contains
       do i = 1, shapeArray(1)
         x = i*dx
         if (x<0.5) then
-          u(i,1) = 1
+          u(i,1) = 8
+          u(i,2) = 0
+          u(i,3) = 3.2
         else
-          u(i,1) = 1.2
+          u(i,1) = 8
+          u(i,2) = 0
+          u(i,3) = 0.1
         endif
       enddo
 
@@ -60,7 +64,7 @@ contains
     real(kind=8), intent(in) :: sigma
     integer, intent(in) :: flux
     real(kind=8), dimension(:,:), allocatable :: ubis, Fu
-    real(kind=8) :: g, bip, bim, l1, l2, l3, l4, l5, l6
+    real(kind=8) :: g, bip, bim, l1, l2, l3, l4, l5, l6, v1, v2
     integer :: i
     integer, dimension(2) :: shapeArray
     real(kind=8), dimension(2) :: fluxp, fluxm
@@ -72,10 +76,18 @@ contains
     allocate(Fu(1:shapeArray(1), 1:shapeArray(2)))
 
     ! Système de Saint Venant - flux physique
+    ! do i=1, shapeArray(1)
+    !   Fu(i,1) = u(i,2)
+    !   Fu(i,2) = u(i,2)*u(i,2)/u(i,1)+0.5*g*u(i,1)*u(i,1)
+    ! enddo
+
+    ! Système d'Euler coordonnées Lagrangiennes
     do i=1, shapeArray(1)
       Fu(i,1) = u(i,2)
-      Fu(i,2) = u(i,2)*u(i,2)/u(i,1)+0.5*g*u(i,1)*u(i,1)
+      Fu(i,2) = (u(i,3)-0.5*u(i,2)**2)/(0.4*u(i,1))
+      Fu(i,3) = u(i,2)*(u(i,3)-0.5*u(i,2)**2)/(0.4*u(i,1))
     enddo
+
 
     ubis = u
 
@@ -90,15 +102,14 @@ contains
 
     case (1) ! Flux de Rusanov
       do i=2, shapeArray(1)-1
-        l1 = abs(ubis(i-1,2)/ubis(i-1,1)+sqrt(g*ubis(i-1,1))) ! valeurs propres
-        ! l2 = abs(ubis(i-1,2)/ubis(i-1,1)-sqrt(g*ubis(i-1,1)))
-        l3 = abs(ubis(i,2)/ubis(i,1)+sqrt(g*ubis(i,1)))
-        ! l4 = abs(ubis(i,2)/ubis(i,1)-sqrt(g*ubis(i,1)))
-        ! bim = max(l1, l2, l3, l4)
+        call vp(u(i-1,1), u(i-1,2), u(i-1,3), v1, v2)
+        l1 = abs(v1)
+        call vp(u(i,1), u(i,2), u(i,3), v1, v2)
+        l3 = abs(v1)
         bim = max(l1, l3)
-        l5 = abs(ubis(i+1,2)/ubis(i+1,1)+sqrt(g*ubis(i+1,1)))
-        ! l6 = abs(ubis(i+1,2)/ubis(i+1,1)-sqrt(g*ubis(i+1,1)))
-        ! bip = max(l3, l4, l5, l6)
+
+        call vp(u(i+1,1), u(i+1,2), u(i+1,3), v1, v2)
+        l5 = abs(v1)
         bip = max(l3, l5)
 
         fluxm = 0.5*(Fu(i,:)+Fu(i-1,:))-bim*0.5*(ubis(i,:)-ubis(i-1,:))
@@ -115,6 +126,22 @@ contains
 
 
 
+subroutine vp(n, u, e, vp1, vp2)
+  implicit none
+  real(kind=8), intent(inout) :: vp1, vp2
+  real(kind=8), intent(in) :: n, u, e
+  real(kind=8) :: a, b, d, g
+
+  g = 1.4 - 1
+
+  a = g**2*n**2
+  b = g*(e-0.5*u**2-2*u*n)
+  d = g**2*(e-0.5*u**2-2*u*n)**2-4*g**2*n**2*(2.5*u**2-e)
+
+  vp1 = 0.5*(-b + sqrt(d))/a
+  vp2 = 0.5*(-b - sqrt(d))/a
+end subroutine vp
+
 
 
   subroutine SaveSol(u, it, dx)
@@ -123,7 +150,7 @@ contains
     real(kind=8), intent(in) :: dx
     integer, intent(in) :: it
     integer :: i
-    character(len=10) :: hi, qi, temps, x
+    character(len=10) :: hi, qi, temps, x, ei
     integer, dimension(2) :: shapeArray
 
     shapeArray = shape(u)
@@ -136,7 +163,8 @@ contains
       write(x,'(F10.6)') i*dx
       write(hi, '(F10.6)') u(i,1)
       write(qi, '(F10.6)') u(i,2)
-      write(15, *) x // "  " // hi // "  " // qi
+      write(ei, '(F10.6)') u(i,3)
+      write(15, *) x // "  " // hi // "  " // qi // "  " // ei
     enddo
 
     close(15)
