@@ -21,13 +21,13 @@ contains
       do i = 1, shapeArray(1)
         x = i*dx
         if (x<0.5) then
-          u(i,1) = 8
+          u(i,1) = 1
           u(i,2) = 0
-          u(i,3) = 3.2
+          u(i,3) = 0.4
         else
           u(i,1) = 8
           u(i,2) = 0
-          u(i,3) = 0.1
+          u(i,3) = 0.32
         endif
       enddo
 
@@ -67,13 +67,14 @@ contains
     real(kind=8) :: g, bip, bim, l1, l2, l3, l4, l5, l6, v1, v2
     integer :: i
     integer, dimension(2) :: shapeArray
-    real(kind=8), dimension(2) :: fluxp, fluxm
+    real(kind=8), dimension(:), allocatable :: fluxp, fluxm
 
     g=9.81
 
     shapeArray = shape(u)
     allocate(ubis(1:shapeArray(1), 1:shapeArray(2)))
     allocate(Fu(1:shapeArray(1), 1:shapeArray(2)))
+    allocate(fluxm(1:shapeArray(2)), fluxp(1:shapeArray(2)))
 
     ! Système de Saint Venant - flux physique
     ! do i=1, shapeArray(1)
@@ -102,18 +103,24 @@ contains
 
     case (1) ! Flux de Rusanov
       do i=2, shapeArray(1)-1
-        call vp(u(i-1,1), u(i-1,2), u(i-1,3), v1, v2)
+        ! call vp(u(i-1,1), u(i-1,2), u(i-1,3), v1, v2)
+        call racines(u(i-1,1:3), v1, v2)
         l1 = abs(v1)
-        call vp(u(i,1), u(i,2), u(i,3), v1, v2)
+        ! call vp(u(i,1), u(i,2), u(i,3), v1, v2)
+        call racines(u(i,1:3), v1, v2)
         l3 = abs(v1)
         bim = max(l1, l3)
 
-        call vp(u(i+1,1), u(i+1,2), u(i+1,3), v1, v2)
+        ! call vp(u(i+1,1), u(i+1,2), u(i+1,3), v1, v2)
+        call racines(u(i+1,1:3), v1, v2)
         l5 = abs(v1)
         bip = max(l3, l5)
 
+        ! write(6,*) bim, bip
+
         fluxm = 0.5*(Fu(i,:)+Fu(i-1,:))-bim*0.5*(ubis(i,:)-ubis(i-1,:))
         fluxp = 0.5*(Fu(i+1,:)+Fu(i,:))-bip*0.5*(ubis(i+1,:)-ubis(i,:))
+
         u(i,:) = ubis(i,:) - sigma*(fluxp - fluxm)
       enddo
 
@@ -121,26 +128,27 @@ contains
       write(6,*) "Attention au flux choisi"
 
     end select
-    deallocate(ubis, Fu)
+    deallocate(ubis, Fu, fluxm, fluxp)
   end subroutine Iteration
 
 
+  subroutine racines(u,v1,v2)
+    implicit none
+    real(kind=8), intent(in), dimension(1:3) :: u
+    real(kind=8), intent(inout) :: v1, v2
+    real(kind=8) :: a,b,c,d,g
 
-subroutine vp(n, u, e, vp1, vp2)
-  implicit none
-  real(kind=8), intent(inout) :: vp1, vp2
-  real(kind=8), intent(in) :: n, u, e
-  real(kind=8) :: a, b, d, g
+    g = 1.4 - 1
 
-  g = 1.4 - 1
+    a = g**2*u(1)**2
+    b = g*(u(3)-0.5*u(2)**2-2*u(2)*u(1))
+    c = 2.5*u(2)**2 - u(3)
 
-  a = g**2*n**2
-  b = g*(e-0.5*u**2-2*u*n)
-  d = g**2*(e-0.5*u**2-2*u*n)**2-4*g**2*n**2*(2.5*u**2-e)
-
-  vp1 = 0.5*(-b + sqrt(d))/a
-  vp2 = 0.5*(-b - sqrt(d))/a
-end subroutine vp
+    d = b**2-4*a*c
+    if (d<=0) write(6,*) "Attention au déterminant ! d = ", d 
+    v1 = (-b + sqrt(d))/(2*a)
+    v2 = (-b - sqrt(d))/(2*a)
+  end subroutine racines
 
 
 
@@ -161,10 +169,15 @@ end subroutine vp
 
     do i=1, shapeArray(1)
       write(x,'(F10.6)') i*dx
-      write(hi, '(F10.6)') u(i,1)
-      write(qi, '(F10.6)') u(i,2)
-      write(ei, '(F10.6)') u(i,3)
+      write(hi, '(F10.6)') 1./u(i,1) ! Densité
+      write(qi, '(F10.6)') u(i,2) ! Vitesse
+      write(ei, '(F10.6)') (u(i,3)-0.5*u(i,2)**2)/(0.4*u(i,1)) ! Pression
       write(15, *) x // "  " // hi // "  " // qi // "  " // ei
+
+      ! Plan u-p
+      ! write(hi, '(F10.6)') u(i,2) ! Vitesse
+      ! write(ei, '(F10.6)') (u(i,3)-0.5*u(i,2)**2)/(0.4*u(i,1)) ! Pression
+      ! write(15, *) hi // "  " // ei
     enddo
 
     close(15)

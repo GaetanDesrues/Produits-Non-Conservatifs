@@ -2,9 +2,11 @@ OPTIONS = -w #-O0
 COMP = gfortran
 
 OUT = exe
+PRGM = test.f90 main.f90
+# PRGM = aulerMieussens.f90
 
-exe : test.f90 main.f90
-	$(COMP) $(OPTIONS) -o $(OUT) test.f90 main.f90
+exe : $(PRGM)
+	$(COMP) $(OPTIONS) -o $(OUT) $(PRGM)
 
 clean :
 	rm *.o

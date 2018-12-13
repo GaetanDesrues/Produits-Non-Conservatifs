@@ -17,11 +17,11 @@ program Main
 
   x_min = 0
   x_max = 1
-  nbMailles = 300
+  nbMailles = 100
   dx = (x_max - x_min)/nbMailles
   t = 0
-  tF = 0.5
-  dt = 0.0001
+  tF = 0.05
+  dt = 0.001
   nbEq = 3
   sigma = dt/dx
 
@@ -38,6 +38,8 @@ program Main
     call Iteration(u, sigma, RUSANOV) ! Calcul de la sol à chaque pas de temps
     call SaveSol(u, it, dx)
   enddo
+
+
   !
   ! ! gg = 0.10
   ! allocate(ue(1:nbMailles))
