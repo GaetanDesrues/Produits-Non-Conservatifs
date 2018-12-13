@@ -21,9 +21,9 @@ contains
       do i = 1, shapeArray(1)
         x = i*dx
         if (x<0.5) then
-          u(i,1) = 1
-          u(i,2) = 0
-          u(i,3) = 0.4
+          u(i,1) = 2.1!1
+          u(i,2) = 2.3
+          u(i,3) = 3.485!0.4
         else
           u(i,1) = 8
           u(i,2) = 0
@@ -103,19 +103,16 @@ contains
 
     case (1) ! Flux de Rusanov
       do i=2, shapeArray(1)-1
-        ! call vp(u(i-1,1), u(i-1,2), u(i-1,3), v1, v2)
-        call racines(u(i-1,1:3), v1, v2)
+        call racines(u(i-1,:), v1, v2)
         l1 = abs(v1)
-        ! call vp(u(i,1), u(i,2), u(i,3), v1, v2)
-        call racines(u(i,1:3), v1, v2)
+        call racines(u(i,:), v1, v2)
         l3 = abs(v1)
         bim = max(l1, l3)
-
-        ! call vp(u(i+1,1), u(i+1,2), u(i+1,3), v1, v2)
-        call racines(u(i+1,1:3), v1, v2)
+        call racines(u(i+1,:), v1, v2)
         l5 = abs(v1)
         bip = max(l3, l5)
 
+        ! if (isNaN(bim)) stop "Erreur : Valeur propre  =  NaN"
         ! write(6,*) bim, bip
 
         fluxm = 0.5*(Fu(i,:)+Fu(i-1,:))-bim*0.5*(ubis(i,:)-ubis(i-1,:))
@@ -139,13 +136,15 @@ contains
     real(kind=8) :: a,b,c,d,g
 
     g = 1.4 - 1
-
+    ! if (isNaN(u(1))) stop "Erreur : Valeur propre  =  NaN1"
+    ! if (isNaN(u(2))) stop "Erreur : Valeur propre  =  NaN2"
+    ! if (isNaN(u(3))) stop "Erreur : Valeur propre  =  NaN3"
     a = g**2*u(1)**2
     b = g*(u(3)-0.5*u(2)**2-2*u(2)*u(1))
     c = 2.5*u(2)**2 - u(3)
 
     d = b**2-4*a*c
-    if (d<=0) write(6,*) "Attention au déterminant ! d = ", d 
+    if (d<=0) write(6,*) "Attention au déterminant ! d = ", d
     v1 = (-b + sqrt(d))/(2*a)
     v2 = (-b - sqrt(d))/(2*a)
   end subroutine racines

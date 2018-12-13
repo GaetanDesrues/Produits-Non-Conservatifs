@@ -17,11 +17,11 @@ program Main
 
   x_min = 0
   x_max = 1
-  nbMailles = 200
+  nbMailles = 1500
   dx = (x_max - x_min)/nbMailles
   t = 0
   tF = 0.5
-  dt = 0.001
+  dt = 0.0001
   nbEq = 3
   sigma = dt/dx
 

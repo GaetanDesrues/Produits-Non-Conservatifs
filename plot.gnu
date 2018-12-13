@@ -9,7 +9,7 @@ a2 = 2*a3
 a1 = 0
 
 set multiplot layout 2, 2 title "Equations d'Euler en coordonnées Lagrangiennes sous forme conservative" font ",14"
-set yrange[0:1.2]
+# set yrange[0:1.5]
 set title "n = ".a1
 plot for [c=2:4] "Output/Sol_it=".a1.".txt" using 1:c with lines lw 1.5 lt word(col,c-1) title word(syl,c-1)
 set title "n = ".a3
