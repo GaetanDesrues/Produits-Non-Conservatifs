@@ -17,10 +17,10 @@ program Main
 
   x_min = 0
   x_max = 1
-  nbMailles = 100
+  nbMailles = 200
   dx = (x_max - x_min)/nbMailles
   t = 0
-  tF = 0.05
+  tF = 0.5
   dt = 0.001
   nbEq = 3
   sigma = dt/dx
@@ -35,7 +35,7 @@ program Main
   do while (t<tF)
     t = t+dt
     it = it + 1
-    call Iteration(u, sigma, RUSANOV) ! Calcul de la sol à chaque pas de temps
+    call Iteration(u, sigma, LAX_FRIEDRICHS) ! Calcul de la sol à chaque pas de temps
     call SaveSol(u, it, dx)
   enddo
 
