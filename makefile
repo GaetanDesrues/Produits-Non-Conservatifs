@@ -18,5 +18,8 @@ cleanoutput :
 plot :
 	gnuplot -p plot.gnu
 
+plot1 :
+	gnuplot -p plot1.gnu
+
 anim :
 	gnuplot -p anim.gnu

@@ -23,7 +23,7 @@ contains
         if (x<0.5) then
           u(i,1) = 2.1!1
           u(i,2) = 2.3
-          u(i,3) = 3.485!0.4
+          u(i,3) = 0.84!3.485!0.4
         else
           u(i,1) = 8
           u(i,2) = 0
@@ -64,8 +64,8 @@ contains
     real(kind=8), intent(in) :: sigma
     integer, intent(in) :: flux
     real(kind=8), dimension(:,:), allocatable :: ubis, Fu, dp, dm
-    real(kind=8) :: g, bip, bim, l1, l2, l3, l4, l5, l6, v1, v2
-    integer :: i
+    real(kind=8) :: g, bip, bim, l1, l2, l3, l4, l5, l6, v1, v2, sigSpeed
+    integer :: i, j
     integer, dimension(2) :: shapeArray
     real(kind=8), dimension(:), allocatable :: fluxp, fluxm
     character(len=10) :: xx, xxx
@@ -85,11 +85,11 @@ contains
     ! enddo
 
     ! Système d'Euler coordonnées Lagrangiennes (conservatif)
-    do i=1, shapeArray(1)
-      Fu(i,1) = u(i,2)
-      Fu(i,2) = (u(i,3)-0.5*u(i,2)**2)/(0.4*u(i,1))
-      Fu(i,3) = u(i,2)*(u(i,3)-0.5*u(i,2)**2)/(0.4*u(i,1))
-    enddo
+    ! do i=1, shapeArray(1)
+    !   Fu(i,1) = u(i,2)
+    !   Fu(i,2) = (u(i,3)-0.5*u(i,2)**2)/(0.4*u(i,1))
+    !   Fu(i,3) = u(i,2)*(u(i,3)-0.5*u(i,2)**2)/(0.4*u(i,1))
+    ! enddo
 
 
     ubis = u
@@ -146,23 +146,27 @@ contains
 
 
     case (2) ! Schéma path-conservative
-      allocate(dp(1:shapeArray(1)-1), dm(1:shapeArray(1)-1))
+      allocate(dp(1:shapeArray(1)-1,1:3), dm(1:shapeArray(1)-1,1:3))
       dp = 0
       dm = 0
 
       do i=1, shapeArray(1)-1
+        ! D'après la relation (23) de Pares
 
-        ! D'après la relation de RH
-        d(1) = nu(i+1)-nu(i)
-        d(2) = u(i)-u(i+1)
-        d(3) = 0.5*(p(i+1)+p(i))*(u(i)-u(i+1))
+        ! if ((u(i+1,1)-u(i,1))/=0) write(6,*) -(u(i+1,2)-u(i,2))/(u(i+1,1)-u(i,1))
 
-        do j=1, 3 ! Sépare positif/négatif
-          if (d(j)>=0) then
+        d(1) = u(i,2)-u(i+1,2)
+        d(2) = 2.5*(u(i+1,3)/u(i+1,1)-u(i,3)/u(i,1)) !u(i,2)-u(i+1,2)
+        d(3) = 1.25*(u(i,3)/u(i,1)+u(i+1,3)/u(i+1,1))*(u(i+1,2)-u(i,2))
+
+        do j=1,3 ! Sépare positif/négatif
+          sigSpeed = (u(i+1,j)-u(i,j))
+          if (sigSpeed/=0) sigSpeed = d(j)/(u(i+1,j)-u(i,j))
+          if (sigSpeed>0) then
             dp(i,j) = d(j)
           else
             dm(i,j) = d(j)
-          enddo
+          endif
         enddo
 
         ! dp contient sur chaque maille (i) un vecteur de dimension 3
@@ -225,7 +229,8 @@ contains
       write(x,'(F10.6)') i*dx
       write(hi, '(F10.6)') 1./u(i,1) ! Densité
       write(qi, '(F10.6)') u(i,2) ! Vitesse
-      write(ei, '(F10.6)') (u(i,3)-0.5*u(i,2)**2)/(0.4*u(i,1)) ! Pression
+      ! write(ei, '(F10.6)') (u(i,3)-0.5*u(i,2)**2)/(0.4*u(i,1)) ! Pression
+      write(ei, '(F10.6)') u(i,3)/(0.4*u(i,1)) ! Pression
       write(15, *) x // "  " // hi // "  " // qi // "  " // ei
 
       ! Plan u-p
