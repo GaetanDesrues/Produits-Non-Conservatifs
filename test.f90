@@ -63,11 +63,13 @@ contains
     real(kind=8), dimension(:,:), intent(inout) :: u
     real(kind=8), intent(in) :: sigma
     integer, intent(in) :: flux
-    real(kind=8), dimension(:,:), allocatable :: ubis, Fu
+    real(kind=8), dimension(:,:), allocatable :: ubis, Fu, dp, dm
     real(kind=8) :: g, bip, bim, l1, l2, l3, l4, l5, l6, v1, v2
     integer :: i
     integer, dimension(2) :: shapeArray
     real(kind=8), dimension(:), allocatable :: fluxp, fluxm
+    character(len=10) :: xx, xxx
+    real(kind=8), dimension(3) :: d
 
     g=9.81
 
@@ -82,7 +84,7 @@ contains
     !   Fu(i,2) = u(i,2)*u(i,2)/u(i,1)+0.5*g*u(i,1)*u(i,1)
     ! enddo
 
-    ! Système d'Euler coordonnées Lagrangiennes
+    ! Système d'Euler coordonnées Lagrangiennes (conservatif)
     do i=1, shapeArray(1)
       Fu(i,1) = u(i,2)
       Fu(i,2) = (u(i,3)-0.5*u(i,2)**2)/(0.4*u(i,1))
@@ -94,11 +96,26 @@ contains
 
     select case (flux)
     case (0) ! Flux de Lax-Friedrichs
+      open(unit=22, file="Output/LF.txt", status="unknown")
       do i=2, shapeArray(1)-1
+        !!
+        call racines(u(i-1,:), v1, v2)
+        l1 = abs(v1)
+        call racines(u(i,:), v1, v2)
+        l3 = abs(v1)
+        bim = max(l1, l3)
+        call racines(u(i+1,:), v1, v2)
+        l5 = abs(v1)
+        bip = max(l3, l5)
+        !!
+        write(xx,'(F10.6)') bim
+        write(xxx,'(F10.6)') bip
+        write(22,*) xx // "  " // xxx
         fluxm = 0.5*(Fu(i,:)+Fu(i-1,:))-0.5/sigma*(ubis(i,:)-ubis(i-1,:))
         fluxp = 0.5*(Fu(i+1,:)+Fu(i,:))-0.5/sigma*(ubis(i+1,:)-ubis(i,:))
         u(i,:) = ubis(i,:) - sigma*(fluxp - fluxm)
       enddo
+      close(22)
 
 
     case (1) ! Flux de Rusanov
@@ -112,6 +129,9 @@ contains
         l5 = abs(v1)
         bip = max(l3, l5)
 
+        bim=0.1
+        bip=0.2
+
         ! if (isNaN(bim)) stop "Erreur : Valeur propre  =  NaN"
         ! write(6,*) bim, bip
 
@@ -120,6 +140,41 @@ contains
 
         u(i,:) = ubis(i,:) - sigma*(fluxp - fluxm)
       enddo
+
+
+
+
+
+    case (2) ! Schéma path-conservative
+      allocate(dp(1:shapeArray(1)-1), dm(1:shapeArray(1)-1))
+      dp = 0
+      dm = 0
+
+      do i=1, shapeArray(1)-1
+
+        ! D'après la relation de RH
+        d(1) = nu(i+1)-nu(i)
+        d(2) = u(i)-u(i+1)
+        d(3) = 0.5*(p(i+1)+p(i))*(u(i)-u(i+1))
+
+        do j=1, 3 ! Sépare positif/négatif
+          if (d(j)>=0) then
+            dp(i,j) = d(j)
+          else
+            dm(i,j) = d(j)
+          enddo
+        enddo
+
+        ! dp contient sur chaque maille (i) un vecteur de dimension 3
+        ! égal à D^+_{i+1/2}
+        ! dm contient sur chaque maille (i) un vecteur de dimension 3
+        ! égal à D^-_{i+1/2}
+      enddo
+
+      do i=2, shapeArray(1)-1
+        u(i,:) = ubis(i,:) - sigma*(dp(i-1,:) + dm(i,:))
+      enddo
+      deallocate(dp, dm)
 
     case default
       write(6,*) "Attention au flux choisi"
@@ -164,7 +219,7 @@ contains
 
     write(temps, '(I6)') it
 
-    open(unit=15, file="Output/Sol_it=" // trim(adjustl(temps)) // ".txt", status="unknown")
+    open(unit=15, file="Output/Sol/Sol_it=" // trim(adjustl(temps)) // ".txt", status="unknown")
 
     do i=1, shapeArray(1)
       write(x,'(F10.6)') i*dx

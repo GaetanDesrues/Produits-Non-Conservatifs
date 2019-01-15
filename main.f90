@@ -8,7 +8,7 @@ program Main
   integer :: nbEq, it
   integer, dimension(2) :: shapeArray ! Taille de la solution
 
-  integer, parameter :: LAX_FRIEDRICHS=0, RUSANOV=1 ! Flux
+  integer, parameter :: LAX_FRIEDRICHS=0, RUSANOV=1, PARES=2 ! Flux
   integer, parameter :: MARCHE=0, GAUSSIENNE=1, SINUS=2 ! Condition Initiale
 
   real(kind=8) :: gg
@@ -17,7 +17,7 @@ program Main
 
   x_min = 0
   x_max = 1
-  nbMailles = 1500
+  nbMailles = 300
   dx = (x_max - x_min)/nbMailles
   t = 0
   tF = 0.5
