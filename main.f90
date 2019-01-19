@@ -5,7 +5,7 @@ program Main
 
   real(kind=8) :: x_min, x_max, nbMailles, dt, tF, CFL, phi, dx, sigma, t
   real(kind=8), dimension(:,:), allocatable :: u, ue
-  integer :: nbEq, it
+  integer :: nbEq, it, itSave
   integer, dimension(2) :: shapeArray ! Taille de la solution
 
   integer, parameter :: LAX_FRIEDRICHS=0, RUSANOV=1, PARES=2 ! Flux
@@ -13,14 +13,12 @@ program Main
 
   real(kind=8) :: gg
 
-  ! phi égal à : 0=minmod, 1=minmssod
-
   x_min = 0
   x_max = 1
-  nbMailles = 1000
+  nbMailles = 1500
   dx = (x_max - x_min)/nbMailles
   t = 0
-  tF = 0.1
+  tF = 0.2
   dt = 0.0001
   nbEq = 3
   sigma = dt/dx
@@ -32,11 +30,16 @@ program Main
   call SaveSol(u, 0, dx) ! Save la sol initiale
 
   it = 0
+  itSave = 0
   do while (t<tF)
     t = t+dt
     it = it + 1
-    call Iteration(u, sigma, PARES) ! Calcul de la sol à chaque pas de temps
-    call SaveSol(u, it, dx)
+    call Iteration(u, sigma, RUSANOV) ! Calcul de la sol à chaque pas de temps
+
+    if(mod(it,20)==0) then
+      itSave = itSave + 1
+      call SaveSol(u, itSave, dx)
+    endif
   enddo
 
 

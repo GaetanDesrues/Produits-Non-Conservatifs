@@ -2,7 +2,7 @@ OPTIONS = -w #-O0
 COMP = gfortran
 
 OUT = exe
-PRGM = test.f90 main.f90
+PRGM = functions.f90 main.f90
 # PRGM = aulerMieussens.f90
 
 exe : $(PRGM)

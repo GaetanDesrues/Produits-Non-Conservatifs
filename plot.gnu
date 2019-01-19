@@ -8,8 +8,8 @@ a3 = a4/3
 a2 = 2*a3
 a1 = 0
 
-set multiplot layout 2, 2 title "Equations d'Euler en coordonnées Lagrangiennes sous forme conservative" font ",14"
-# set yrange[0:3]
+set multiplot layout 2, 2 title "Equations d'Euler sous forme non conservative - Flux de Lax-Friedrichs" font ",14"
+# set yrange[0:2.5]
 # set xrange[0.4:0.6]
 # set yrange[-10:10]
 set title "n = ".a1
