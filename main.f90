@@ -34,7 +34,7 @@ program Main
   do while (t<tF)
     t = t+dt
     it = it + 1
-    call Iteration(u, sigma, RUSANOV) ! Calcul de la sol à chaque pas de temps
+    call Iteration(u, sigma, PARES) ! Calcul de la sol à chaque pas de temps
 
     if(mod(it,20)==0) then
       itSave = itSave + 1
