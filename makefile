@@ -3,7 +3,6 @@ COMP = gfortran
 
 OUT = exe
 PRGM = functions.f90 main.f90
-# PRGM = aulerMieussens.f90
 
 exe : $(PRGM)
 	$(COMP) $(OPTIONS) -o $(OUT) $(PRGM)
@@ -12,14 +11,9 @@ clean :
 	rm *.o
 	rm *.mod
 
-cleanoutput :
-	rm Output/*.txt
-
 plot :
 	gnuplot -p plot.gnu
 
-plot1 :
-	gnuplot -p plot1.gnu
 
 anim :
 	gnuplot -p anim.gnu

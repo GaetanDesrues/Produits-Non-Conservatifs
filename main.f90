@@ -10,8 +10,6 @@ program Main
   integer, parameter :: LAX_FRIEDRICHS=0, RUSANOV=1, PARES=2 ! Flux
   integer, parameter :: MARCHE=0, GAUSSIENNE=1, SINUS=2 ! Condition Initiale
 
-  real(kind=8) :: gg
-
   x_min = 0
   x_max = 1
   nbMailles = 1500
@@ -40,14 +38,6 @@ program Main
       call SaveSol(u, itSave, dx)
     endif
   enddo
-
-
-  !
-  ! ! gg = 0.10
-  ! allocate(ue(1:nbMailles))
-  ! ! ! Solution exacte
-  ! ! call SolExacte(x_max, dx, gg, ue, a)
-  ! ! call SaveSol(ue, tF+gg, dx)
 
   deallocate(u)
 
