@@ -2,7 +2,7 @@ program Main
   use Solveur
   implicit none
 
-
+! hehe
   real(kind=8) :: x_min, x_max, nbMailles, dt, tF, CFL, phi, dx, sigma, t
   real(kind=8), dimension(:,:), allocatable :: u, ue
   integer :: nbEq, it, itSave

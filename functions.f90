@@ -86,12 +86,12 @@ contains
     ! enddo
 
     ! Système d'Euler coordonnées Lagrangiennes (conservatif)
-    do i=1, shapeArray(1)
-      p = (u(i,3)-0.5*u(i,2)**2)/(0.4*u(i,1))
-      Fu(i,1) = -u(i,2)
-      Fu(i,2) = p
-      Fu(i,3) = p*u(i,2)
-    enddo
+    ! do i=1, shapeArray(1)
+    !   p = (u(i,3)-0.5*u(i,2)**2)/(0.4*u(i,1))
+    !   Fu(i,1) = -u(i,2)
+    !   Fu(i,2) = p
+    !   Fu(i,3) = p*u(i,2)
+    ! enddo
 
 
     ubis = u
@@ -131,10 +131,10 @@ contains
           fluxm2(j) = 0.25*(2*Fu(i,j)+Fu(i+1,j)+Fu(i-1,j))-bim*0.25*(ubis(i+1,j)-ubis(i-1,j))
           fluxp2(j) = 0.25*(2*Fu(i+1,j)+Fu(i+2,j)+Fu(i,j))-bip*0.25*(ubis(i+2,j)-ubis(i,j))
 
-          ! limm = 0 ! ordre 1
-          ! limp = 0 ! ordre 1
-          limm = minmod(1.d0,thetam)
-          limp = minmod(1.d0,thetap)
+          limm = 0 ! ordre 1
+          limp = 0 ! ordre 1
+          ! limm = minmod(1.d0,thetam)
+          ! limp = minmod(1.d0,thetap)
           ! limm = superbee(thetam)
           ! limp = superbee(thetap)
           ! limm = vonLeer(thetam)
@@ -183,6 +183,7 @@ contains
           bip = sqrt(3.5*pp/u(i+1,1))
 
           bip = max(bi, bip)
+          ! write(6,*) bip
 
           ! limiteur de pente
           thetam = u(i,j)-u(i-1,j)
@@ -192,12 +193,12 @@ contains
 
           ! limm = 0 ! 0 = ordre 1, 1 = ordre 2
           ! limp = 0 ! 0 = ordre 1, 1 = ordre 2
-          limm = minmod(1.d0,thetam)
-          limp = minmod(1.d0,thetap)
+          ! limm = minmod(1.d0,thetam)
+          ! limp = minmod(1.d0,thetap)
           ! limm = superbee(thetam)
           ! limp = superbee(thetap)
-          ! limm = vonLeer(thetam)
-          ! limp = vonLeer(thetap)
+          limm = vonLeer(thetam)
+          limp = vonLeer(thetap)
 
           dp(i,j) = 0.5*d(j)+0.5*bip*(u(i+1,j)-u(i,j))
           dm(i,j) = 0.5*d(j)-0.5*bip*(u(i+1,j)-u(i,j))
@@ -237,7 +238,7 @@ contains
 
     write(temps, '(I6)') it
 
-    open(unit=15, file="Output/Sol/Sol_it=" // trim(adjustl(temps)) // ".txt", status="unknown")
+    open(unit=15, file="Output/Sol/PCR2_VonLeer_it=" // trim(adjustl(temps)) // ".txt", status="unknown")
 
     do i=1, shapeArray(1)
       write(x,'(F10.6)') i*dx
@@ -263,61 +264,61 @@ contains
 
 
 
-  subroutine racines(u,v1,v2)
-    implicit none
-    real(kind=8), intent(in), dimension(1:3) :: u
-    real(kind=8), intent(inout) :: v1, v2
-    real(kind=8) :: a,b,c,d,g
-
-    g = 1.4 - 1
-    ! if (isNaN(u(1))) stop "Erreur : Valeur propre  =  NaN1"
-    ! if (isNaN(u(2))) stop "Erreur : Valeur propre  =  NaN2"
-    ! if (isNaN(u(3))) stop "Erreur : Valeur propre  =  NaN3"
-    a = g**2*u(1)**2
-    b = g*(u(3)-0.5*u(2)**2-2*u(2)*u(1))
-    c = 2.5*u(2)**2 - u(3)
-
-    d = b**2-4*a*c
-    if (d<=0) write(6,*) "Attention au déterminant ! d = ", d
-    v1 = (-b + sqrt(d))/(2*a)
-    v2 = (-b - sqrt(d))/(2*a)
-  end subroutine racines
-
-
+  ! subroutine racines(u,v1,v2)
+  !   implicit none
+  !   real(kind=8), intent(in), dimension(1:3) :: u
+  !   real(kind=8), intent(inout) :: v1, v2
+  !   real(kind=8) :: a,b,c,d,g
+  !
+  !   g = 1.4 - 1
+  !   ! if (isNaN(u(1))) stop "Erreur : Valeur propre  =  NaN1"
+  !   ! if (isNaN(u(2))) stop "Erreur : Valeur propre  =  NaN2"
+  !   ! if (isNaN(u(3))) stop "Erreur : Valeur propre  =  NaN3"
+  !   a = g**2*u(1)**2
+  !   b = g*(u(3)-0.5*u(2)**2-2*u(2)*u(1))
+  !   c = 2.5*u(2)**2 - u(3)
+  !
+  !   d = b**2-4*a*c
+  !   if (d<=0) write(6,*) "Attention au déterminant ! d = ", d
+  !   v1 = (-b + sqrt(d))/(2*a)
+  !   v2 = (-b - sqrt(d))/(2*a)
+  ! end subroutine racines
 
 
 
-  subroutine SolExacte(xmax, dx, t, u, a)
-    implicit none
-    real(kind=8), intent(inout), dimension(:) :: u
-    real(kind=8), intent(in) :: dx, xmax, t, a
-    real(kind=8) :: x, sig, mu
-    integer :: i
-
-    ! sig = 0.08
-    ! mu = 0.5
-
-    ! do i = 1, size(u)
-    !   x = i*dx - a*t
-    !   if ((x<0.4) .or. x>(0.6)) then
-    !     u(i) = 0
-    !   else
-    !     u(i) = sin((x-0.4)*3.1415*5)
-    !   endif
-    !   ! u(i) = 1/(sig*sqrt(2*3.1415))*exp(-((x-mu)/sig)**2/2)
-    ! enddo
-
-    do i = 1, size(u)
-      x = i*dx - a*t
-      if (x<0.5) then
-        u(i) = 1
-      else
-        u(i) = 0
-      endif
-    enddo
 
 
-  end subroutine SolExacte
+  ! subroutine SolExacte(xmax, dx, t, u, a)
+  !   implicit none
+  !   real(kind=8), intent(inout), dimension(:) :: u
+  !   real(kind=8), intent(in) :: dx, xmax, t, a
+  !   real(kind=8) :: x, sig, mu
+  !   integer :: i
+  !
+  !   ! sig = 0.08
+  !   ! mu = 0.5
+  !
+  !   ! do i = 1, size(u)
+  !   !   x = i*dx - a*t
+  !   !   if ((x<0.4) .or. x>(0.6)) then
+  !   !     u(i) = 0
+  !   !   else
+  !   !     u(i) = sin((x-0.4)*3.1415*5)
+  !   !   endif
+  !   !   ! u(i) = 1/(sig*sqrt(2*3.1415))*exp(-((x-mu)/sig)**2/2)
+  !   ! enddo
+  !
+  !   do i = 1, size(u)
+  !     x = i*dx - a*t
+  !     if (x<0.5) then
+  !       u(i) = 1
+  !     else
+  !       u(i) = 0
+  !     endif
+  !   enddo
+  !
+  !
+  ! end subroutine SolExacte
 
 
 
